@@ -12,7 +12,12 @@ type MonitorSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-	Size int32 `json:"size"`
+	Type    string   `json:"type,omitempty"`
+	Query   *string  `json:"query,omitempty"`
+	Name    *string  `json:"name,omitempty"`
+	Message *string  `json:"message,omitempty"`
+	Tags    []string `json:"tags"`
+	//Options              *Options `json:"options,omitempty"`
 }
 
 // MonitorStatus defines the observed state of Monitor
@@ -20,7 +25,7 @@ type MonitorStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-	Nodes []string `json:"nodes"`
+	ID int32 `json:"id"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -2,8 +2,10 @@ package monitor
 
 import (
 	"context"
+	"time"
 
 	datadogv1alpha1 "github.com/abevier/datadog-monitor-operator/pkg/apis/datadog/v1alpha1"
+	"gopkg.in/zorkian/go-datadog-api.v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -126,7 +128,22 @@ func (r *ReconcileMonitor) Reconcile(request reconcile.Request) (reconcile.Resul
 
 	// Pod already exists - don't requeue
 	reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
-	return reconcile.Result{}, nil
+	return reconcile.Result{RequeueAfter: time.Second * 30}, nil
+}
+
+func newMonitor() (int, error) {
+	client := datadog.NewClient("secret", "secret")
+
+	m := &datadog.Monitor{}
+	m.SetName("test")
+	m.SetQuery("test")
+
+	m, err := client.CreateMonitor(m)
+	if err != nil {
+		return -1, err
+	}
+
+	return *m.Id, nil
 }
 
 // newPodForCR returns a busybox pod with the same name/namespace as the cr
