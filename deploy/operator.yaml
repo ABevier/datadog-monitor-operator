@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: datadog-monitor-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: datadog-monitor-operator
+  template:
+    metadata:
+      labels:
+        name: datadog-monitor-operator
+    spec:
+      serviceAccountName: datadog-monitor-operator
+      containers:
+        - name: datadog-monitor-operator
+          # Replace this with the built image name
+          image: REPLACE_IMAGE
+          command:
+          - datadog-monitor-operator
+          imagePullPolicy: Always
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "datadog-monitor-operator"

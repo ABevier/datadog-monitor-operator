@@ -1,0 +1,11 @@
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: datadog-monitor-operator
+subjects:
+- kind: ServiceAccount
+  name: datadog-monitor-operator
+roleRef:
+  kind: Role
+  name: datadog-monitor-operator
+  apiGroup: rbac.authorization.k8s.io
