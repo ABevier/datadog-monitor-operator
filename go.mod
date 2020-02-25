@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/operator-framework/operator-sdk v0.15.2
 	github.com/spf13/pflag v1.0.5
-	github.com/zorkian/go-datadog-api v2.27.0+incompatible // indirect
+	github.com/zorkian/go-datadog-api v2.27.0+incompatible
 	gopkg.in/zorkian/go-datadog-api.v2 v2.27.0
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0

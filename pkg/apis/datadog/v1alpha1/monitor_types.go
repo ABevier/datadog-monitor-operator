@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"github.com/zorkian/go-datadog-api"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -12,7 +13,7 @@ type MonitorSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-	Type    string   `json:"type,omitempty"`
+	Type    *string  `json:"type,omitempty"`
 	Query   *string  `json:"query,omitempty"`
 	Name    *string  `json:"name,omitempty"`
 	Message *string  `json:"message,omitempty"`
@@ -52,4 +53,17 @@ type MonitorList struct {
 
 func init() {
 	SchemeBuilder.Register(&Monitor{}, &MonitorList{})
+}
+
+func (m *MonitorSpec) ToDDMonitor() *datadog.Monitor {
+	tagCopy := make([]string, len(m.Tags))
+	copy(tagCopy, m.Tags)
+
+	return &datadog.Monitor{
+		Type:    m.Type,
+		Query:   m.Query,
+		Name:    m.Name,
+		Message: m.Message,
+		Tags:    tagCopy,
+	}
 }
