@@ -37,10 +37,10 @@ func (c *DataDogClient) GetMonitor(id int) (*datadogv1alpha1.MonitorSpec, error)
 
 	//TODO: map function?
 	return &datadogv1alpha1.MonitorSpec{
-		Type:    monitor.Type,
-		Query:   monitor.Query,
-		Name:    monitor.Name,
-		Message: monitor.Message,
+		Type:    *monitor.Type,
+		Query:   *monitor.Query,
+		Name:    *monitor.Name,
+		Message: *monitor.Message,
 	}, nil
 }
 

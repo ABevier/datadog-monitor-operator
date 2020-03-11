@@ -3,5 +3,7 @@ kind: Monitor
 metadata:
   name: example-monitor
 spec:
-  # Add fields here
-  size: 3
+  type: metric alert
+  name: alan k8s test
+  query: sum(last_1m):sum:argo.router_store_size{environment:aws_abevier} > 50000
+  message: hello world @abevier

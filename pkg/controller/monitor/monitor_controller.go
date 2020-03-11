@@ -2,24 +2,26 @@ package monitor
 
 import (
 	"context"
-	"time"
+	"strings"
 
 	datadogv1alpha1 "github.com/abevier/datadog-monitor-operator/pkg/apis/datadog/v1alpha1"
+	"github.com/abevier/datadog-monitor-operator/pkg/dd"
 	"gopkg.in/zorkian/go-datadog-api.v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
+
+//TODO: uuhhh?
+const finalizerName = "com.datadog.abevier"
 
 var log = logf.Log.WithName("controller_monitor")
 
@@ -36,7 +38,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileMonitor{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileMonitor{client: mgr.GetClient(), scheme: mgr.GetScheme(), datadogClient: dd.NewClient()}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -73,8 +75,9 @@ var _ reconcile.Reconciler = &ReconcileMonitor{}
 type ReconcileMonitor struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-	scheme *runtime.Scheme
+	client        client.Client
+	scheme        *runtime.Scheme
+	datadogClient *dd.DataDogClient
 }
 
 // Reconcile reads that state of the cluster for a Monitor object and makes changes based on the state read
@@ -102,33 +105,72 @@ func (r *ReconcileMonitor) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	// Define a new Pod object
-	pod := newPodForCR(instance)
+	if !instance.ObjectMeta.DeletionTimestamp.IsZero() && len(instance.ObjectMeta.Finalizers) > 0 {
+		// Delete
+		id := instance.Status.ID
+		err := r.datadogClient.DeleteMonitor(id)
+		if err != nil && !strings.HasPrefix(err.Error(), "API error 404 Not Found") {
+			return reconcile.Result{}, err
+		}
 
-	// Set Monitor instance as the owner and controller
-	if err := controllerutil.SetControllerReference(instance, pod, r.scheme); err != nil {
-		return reconcile.Result{}, err
-	}
+		//TODO: only delete my finalizer?
+		instance.Finalizers = []string{}
+		r.client.Update(context.Background(), instance)
 
-	// Check if this Pod already exists
-	found := &corev1.Pod{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, found)
-	if err != nil && errors.IsNotFound(err) {
-		reqLogger.Info("Creating a new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
-		err = r.client.Create(context.TODO(), pod)
+		log.Info("Delete monitor", "id", id)
+	} else if instance.Status.ID != 0 {
+		// Update
+	} else {
+		// Add
+		id, err := r.datadogClient.CreateMonitor(&instance.Spec)
+		if err != nil {
+			//TODO: better error handling?
+			return reconcile.Result{}, err
+		}
+
+		instance.Status.ID = id
+		err = r.client.Status().Update(context.Background(), instance)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 
-		// Pod created successfully - don't requeue
-		return reconcile.Result{}, nil
-	} else if err != nil {
-		return reconcile.Result{}, err
+		instance.Finalizers = append(instance.Finalizers, finalizerName)
+		err = r.client.Update(context.Background(), instance)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+
+		log.Info("Created monitor.", "id", id)
 	}
 
-	// Pod already exists - don't requeue
-	reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
-	return reconcile.Result{RequeueAfter: time.Second * 30}, nil
+	// // Define a new Pod object
+	// pod := newPodForCR(instance)
+
+	// // Set Monitor instance as the owner and controller
+	// if err := controllerutil.SetControllerReference(instance, pod, r.scheme); err != nil {
+	// 	return reconcile.Result{}, err
+	// }
+
+	// // Check if this Pod already exists
+	// found := &corev1.Pod{}
+	// err = r.client.Get(context.TODO(), types.NamespacedName{Name: pod.Name, Namespace: pod.Namespace}, found)
+	// if err != nil && errors.IsNotFound(err) {
+	// 	reqLogger.Info("Creating a new Pod", "Pod.Namespace", pod.Namespace, "Pod.Name", pod.Name)
+	// 	err = r.client.Create(context.TODO(), pod)
+	// 	if err != nil {
+	// 		return reconcile.Result{}, err
+	// 	}
+
+	// 	// Pod created successfully - don't requeue
+	// 	return reconcile.Result{}, nil
+	// } else if err != nil {
+	// 	return reconcile.Result{}, err
+	// }
+
+	// // Pod already exists - don't requeue
+	// reqLogger.Info("Skip reconcile: Pod already exists", "Pod.Namespace", found.Namespace, "Pod.Name", found.Name)
+	//return reconcile.Result{RequeueAfter: time.Second * 30}, nil
+	return reconcile.Result{}, nil
 }
 
 func newMonitor() (int, error) {

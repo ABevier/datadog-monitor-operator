@@ -78,3 +78,15 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - monitors.datadog.abevier
+  resources:
+  - '*'
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch

@@ -13,12 +13,11 @@ type MonitorSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-	Type    *string  `json:"type,omitempty"`
-	Query   *string  `json:"query,omitempty"`
-	Name    *string  `json:"name,omitempty"`
-	Message *string  `json:"message,omitempty"`
-	Tags    []string `json:"tags"`
-	//Options              *Options `json:"options,omitempty"`
+	Type    string   `json:"type"`
+	Name    string   `json:"name"`
+	Query   string   `json:"query"`
+	Message string   `json:"message"`
+	Tags    []string `json:"tags,omitempty"`
 }
 
 // MonitorStatus defines the observed state of Monitor
@@ -26,7 +25,7 @@ type MonitorStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-	ID int32 `json:"id"`
+	ID int `json:"id"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -60,10 +59,10 @@ func (m *MonitorSpec) ToDDMonitor() *datadog.Monitor {
 	copy(tagCopy, m.Tags)
 
 	return &datadog.Monitor{
-		Type:    m.Type,
-		Query:   m.Query,
-		Name:    m.Name,
-		Message: m.Message,
+		Type:    &m.Type,
+		Query:   &m.Query,
+		Name:    &m.Name,
+		Message: &m.Message,
 		Tags:    tagCopy,
 	}
 }

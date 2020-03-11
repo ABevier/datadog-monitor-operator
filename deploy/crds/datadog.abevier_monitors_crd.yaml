@@ -48,7 +48,10 @@ spec:
                 https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html'
               type: string
           required:
-          - tags
+          - message
+          - name
+          - type
+          - query
           type: object
         status:
           description: MonitorStatus defines the observed state of Monitor
@@ -58,7 +61,6 @@ spec:
                 of cluster Important: Run "operator-sdk generate k8s" to regenerate
                 code after modifying this file Add custom validation using kubebuilder
                 tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html'
-              format: int32
               type: integer
           required:
           - id
