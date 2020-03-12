@@ -31,7 +31,6 @@ type MonitorStatus struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Monitor is the Schema for the monitors API
-// +kubebuilder:subresource:status
 // +kubebuilder:resource:path=monitors,scope=Namespaced
 type Monitor struct {
 	metav1.TypeMeta   `json:",inline"`

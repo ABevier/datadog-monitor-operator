@@ -129,7 +129,7 @@ func (r *ReconcileMonitor) Reconcile(request reconcile.Request) (reconcile.Resul
 		}
 
 		instance.Status.ID = id
-		err = r.client.Status().Update(context.Background(), instance)
+		err = r.client.Update(context.Background(), instance)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
