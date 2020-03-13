@@ -20,9 +20,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-//TODO: uuhhh?
-const finalizerName = "com.datadog.abevier"
-
 var log = logf.Log.WithName("controller_monitor")
 
 /**
@@ -105,19 +102,20 @@ func (r *ReconcileMonitor) Reconcile(request reconcile.Request) (reconcile.Resul
 		return reconcile.Result{}, err
 	}
 
-	if !instance.ObjectMeta.DeletionTimestamp.IsZero() && len(instance.ObjectMeta.Finalizers) > 0 {
-		// Delete
-		id := instance.Status.ID
-		err := r.datadogClient.DeleteMonitor(id)
-		if err != nil && !strings.HasPrefix(err.Error(), "API error 404 Not Found") {
-			return reconcile.Result{}, err
+	if !instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		if hasMonitorFinalizer(instance) {
+			// Delete
+			id := instance.Status.ID
+			err := r.datadogClient.DeleteMonitor(id)
+			if err != nil && !strings.HasPrefix(err.Error(), "API error 404 Not Found") {
+				return reconcile.Result{}, err
+			}
+
+			removeMonitorFinalizer(instance)
+			r.client.Update(context.Background(), instance)
+
+			log.Info("Delete monitor", "id", id)
 		}
-
-		//TODO: only delete my finalizer?
-		instance.Finalizers = []string{}
-		r.client.Update(context.Background(), instance)
-
-		log.Info("Delete monitor", "id", id)
 	} else if instance.Status.ID != 0 {
 		// Update
 	} else {
@@ -134,7 +132,7 @@ func (r *ReconcileMonitor) Reconcile(request reconcile.Request) (reconcile.Resul
 			return reconcile.Result{}, err
 		}
 
-		instance.Finalizers = append(instance.Finalizers, finalizerName)
+		addMonitorFinalizer(instance)
 		err = r.client.Update(context.Background(), instance)
 		if err != nil {
 			return reconcile.Result{}, err
